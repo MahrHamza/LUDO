@@ -1,0 +1,646 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Royal Ludo - Classic Edition</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#ffcf58;--dark:#10182c;--panel:#1b2945}
+body{
+ font-family:Arial,sans-serif;color:#fff;min-height:100vh;
+ background:radial-gradient(ellipse at top,#314c72,#111a30 55%,#080e1c);
+ padding:16px;
+}
+button{font:inherit;cursor:pointer}
+.app{width:min(1120px,100%);margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}
+.logo{font-size:25px;font-weight:1000;letter-spacing:2px}
+.logo span{color:var(--gold)}
+.tagline{font-size:10px;color:#aab9d1;letter-spacing:3px;margin-top:5px}
+.gold{color:var(--gold)}
+.screen{display:none}
+.screen.active{display:block}
+.card{
+ background:linear-gradient(145deg,#1d2b48,#111b31);
+ border:1px solid #ffffff20;border-radius:20px;
+ box-shadow:0 18px 55px #0005;
+}
+.setup{max-width:620px;margin:30px auto;padding:28px;text-align:center}
+.setup h1{font-size:36px;margin-bottom:9px}
+.subtitle{font-size:13px;color:#adbbd1;line-height:1.7;margin-bottom:22px}
+.section-label{text-align:left;font-size:13px;font-weight:bold;margin:20px 0 10px;color:#dce6f7}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.option{
+ border:1px solid #ffffff25;border-radius:13px;padding:15px 8px;
+ background:#253654;color:white;font-weight:bold;transition:.2s
+}
+.option:hover{transform:translateY(-2px);background:#304568}
+.option.selected{border:2px solid var(--gold);background:#3a4860;box-shadow:0 0 15px #ffcf5830}
+.option small{display:block;color:#b8c5d9;font-size:11px;font-weight:normal;margin-top:5px}
+.primary{
+ border:0;border-radius:12px;padding:15px 20px;width:100%;
+ background:linear-gradient(135deg,#ffe18b,#eaa52c);
+ color:#2c1b00;font-weight:900;font-size:15px;
+ box-shadow:0 6px 18px #d99c2d35
+}
+.primary:hover{filter:brightness(1.08)}
+.start-note{font-size:11px;color:#8e9eb9;margin-top:13px}
+.gamebar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.turn-pill,.mini-btn{
+ background:#1d2b47;border:1px solid #ffffff20;
+ border-radius:11px;padding:11px 14px;font-size:12px
+}
+.turn-pill strong{color:var(--gold)}
+.mini-btn{color:white}
+.game-layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:15px;align-items:start}
+.board-panel{padding:10px;background:#111c31;border-radius:18px;border:1px solid #ffffff25}
+.board-inner{background:#e9e5d9;border-radius:8px;padding:5px;box-shadow:inset 0 0 12px #0005}
+canvas{width:100%;height:auto;display:block;touch-action:manipulation}
+.sidebar{display:flex;flex-direction:column;gap:12px}
+.panel{background:linear-gradient(145deg,#1e2d4a,#152039);border:1px solid #ffffff20;border-radius:16px;padding:15px}
+.panel h3{font-size:12px;letter-spacing:1px;color:#b8c7de;margin-bottom:12px}
+.dice{
+ width:76px;height:76px;background:linear-gradient(145deg,#fff,#dce2ed);
+ border-radius:17px;color:#17233a;font-size:48px;
+ display:flex;align-items:center;justify-content:center;
+ margin:0 auto 12px;box-shadow:0 6px 0 #9da9ba,0 10px 20px #0004;
+ text-shadow:0 1px 0 white
+}
+.dice.rolling{animation:shake .12s infinite alternate}
+@keyframes shake{from{transform:rotate(-12deg) scale(.94)}to{transform:rotate(12deg) scale(1.06)}}
+.roll-btn{width:100%;border:0;border-radius:11px;padding:13px;background:linear-gradient(135deg,#ffe18b,#eaa52c);color:#2b1b00;font-weight:900}
+.roll-btn:disabled{opacity:.4;cursor:not-allowed}
+.status{font-size:12px;color:#c6d2e5;line-height:1.6;margin-top:12px;min-height:35px;text-align:center}
+.player-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid #ffffff12;font-size:12px}
+.player-row:last-child{border:0}
+.player-row.active{color:#ffe18b;font-weight:bold}
+.dot{height:12px;width:12px;border-radius:50%;box-shadow:0 0 8px currentColor}
+.dot.red{background:#f04b52;color:#f04b52}
+.dot.green{background:#2cbd7b;color:#2cbd7b}
+.dot.yellow{background:#f7c83e;color:#f7c83e}
+.dot.blue{background:#4389f5;color:#4389f5}
+.count{margin-left:auto;color:#b5c3d8}
+.log{font-size:11px;color:#9eafc9;line-height:1.8;max-height:110px;overflow:auto}
+.rules{font-size:11px;line-height:1.9;color:#afbdd3}
+.footer{text-align:center;color:#73839e;font-size:10px;margin:18px 0 5px;letter-spacing:1px}
+.modal{position:fixed;inset:0;background:#030713d9;display:none;align-items:center;justify-content:center;padding:18px;z-index:10}
+.modal.show{display:flex}
+.modal-card{width:min(390px,100%);padding:27px;text-align:center}
+.modal-card h2{font-size:29px;margin-bottom:12px}
+.modal-card p{color:#b7c5dc;font-size:13px;line-height:1.7;margin-bottom:18px}
+.secondary{width:100%;padding:12px;border:1px solid #ffffff30;background:#253653;color:white;border-radius:10px;margin-top:9px}
+@media(max-width:760px){
+ body{padding:9px}
+ header{margin-bottom:12px}
+ .logo{font-size:20px}
+ .tagline{font-size:8px;letter-spacing:2px}
+ .setup{margin:12px auto;padding:19px 14px}
+ .setup h1{font-size:29px}
+ .game-layout{grid-template-columns:1fr}
+ .sidebar{display:grid;grid-template-columns:1fr 1fr}
+ .panel{padding:11px}
+ .board-panel{padding:5px}
+ .dice{width:60px;height:60px;font-size:38px}
+ .gamebar{gap:6px}
+ .turn-pill,.mini-btn{padding:9px 10px;font-size:11px}
+}
+@media(max-width:380px){
+ .sidebar{grid-template-columns:1fr 1fr}
+ .option{padding:12px 5px;font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+ <div>
+  <div class="logo">ROYAL <span>LUDO</span> 👑</div>
+  <div class="tagline">CLASSIC BOARD • ULTIMATE FUN</div>
+ </div>
+ <div style="font-size:11px;color:#b6c5dc">🎲 CLASSIC EDITION</div>
+</header>
+
+<section id="setup" class="screen active">
+ <div class="card setup">
+  <div style="font-size:45px;margin-bottom:8px">🎲</div>
+  <h1>Welcome to <span class="gold">Ludo Royale</span></h1>
+  <p class="subtitle">Roll the dice, move your tokens and become the king of the board!</p>
+
+  <div class="section-label">1. SELECT PLAYERS</div>
+  <div class="options" id="modeOptions">
+   <button class="option selected" data-mode="2">👥 2 Players<small>Red vs Yellow</small></button>
+   <button class="option" data-mode="3">👥 3 Players<small>Three-way battle</small></button>
+   <button class="option" data-mode="4">👥 4 Players<small>Classic Ludo</small></button>
+   <button class="option" data-mode="partner">🤝 Partner Mode<small>2 vs 2 teams</small></button>
+  </div>
+
+  <div class="section-label">2. CHOOSE OPPONENTS</div>
+  <div class="options" id="opponentOptions">
+   <button class="option selected" data-opponent="computer">🤖 Computer<small>Play against AI</small></button>
+   <button class="option" data-opponent="friends">🧑 Friends<small>Same-device multiplayer</small></button>
+  </div>
+
+  <button class="primary" id="startGame" style="margin-top:23px">START GAME →</button>
+  <p class="start-note">No login required • Play locally • Mobile & Desktop</p>
+ </div>
+</section>
+
+<section id="game" class="screen">
+ <div class="gamebar">
+  <div class="turn-pill">CURRENT TURN: <strong id="turnLabel">RED</strong></div>
+  <button class="mini-btn" id="restart">↻ Restart</button>
+  <button class="mini-btn" id="menu">⌂ Main Menu</button>
+ </div>
+
+ <div class="game-layout">
+  <div class="board-panel">
+   <div class="board-inner">
+    <canvas id="board" width="600" height="600"></canvas>
+   </div>
+  </div>
+  <aside class="sidebar">
+   <div class="panel">
+    <h3>🎲 ROLL THE DICE</h3>
+    <div class="dice" id="dice">⚀</div>
+    <button class="roll-btn" id="roll">ROLL DICE</button>
+    <div class="status" id="status">Roll a six to bring a token out!</div>
+   </div>
+   <div class="panel">
+    <h3>🏆 PLAYERS</h3>
+    <div id="playerList"></div>
+   </div>
+   <div class="panel">
+    <h3>📜 GAME HISTORY</h3>
+    <div class="log" id="history">Welcome to Ludo Royale.</div>
+   </div>
+   <div class="panel">
+    <h3>📖 HOW TO PLAY</h3>
+    <div class="rules">
+     • Roll a 6 to bring a token out.<br>
+     • Tap a highlighted token to move.<br>
+     • Capture opponents to send them back.<br>
+     • ★ marks safe squares.<br>
+     • Reach home with an exact roll.<br>
+     • First to finish all 4 tokens wins.
+    </div>
+   </div>
+  </aside>
+ </div>
+</section>
+<div class="footer">ROYAL LUDO • CLASSIC BOARD EXPERIENCE</div>
+</div>
+
+<div class="modal" id="modal">
+ <div class="card modal-card">
+  <div style="font-size:45px">🏆</div>
+  <h2 id="winnerTitle">Winner!</h2>
+  <p id="winnerText"></p>
+  <button class="primary" id="playAgain">PLAY AGAIN</button>
+  <button class="secondary" id="modalMenu">MAIN MENU</button>
+ </div>
+</div>
+
+<script>
+(()=>{
+"use strict";
+
+const canvas=document.getElementById("board");
+const ctx=canvas.getContext("2d");
+const $=id=>document.getElementById(id);
+const W=600,C=40;
+const COLORS={
+ red:{main:"#e8414d",dark:"#a91f30",light:"#ff8990",pale:"#f9b7ba"},
+ green:{main:"#21a86d",dark:"#087349",light:"#75e0a9",pale:"#a9edc9"},
+ yellow:{main:"#f3c43d",dark:"#b17b08",light:"#ffe68b",pale:"#f8e9aa"},
+ blue:{main:"#397fe3",dark:"#1750a4",light:"#8dbbff",pale:"#b4d1fa"}
+};
+const ORDER=["red","green","yellow","blue"];
+const LABEL={red:"RED",green:"GREEN",yellow:"YELLOW",blue:"BLUE"};
+const START={red:0,green:13,yellow:26,blue:39};
+const TRACK=[
+ [6,1],[6,2],[6,3],[6,4],[6,5],
+ [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],
+ [0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],
+ [6,9],[6,10],[6,11],[6,12],[6,13],[6,14],
+ [7,14],[8,14],[8,13],[8,12],[8,11],[8,10],[8,9],
+ [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],
+ [14,7],[14,6],[13,6],[12,6],[11,6],[10,6],[9,6],
+ [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],
+ [7,0],[6,0]
+];
+const LANES={
+ red:[[7,1],[7,2],[7,3],[7,4],[7,5]],
+ green:[[1,7],[2,7],[3,7],[4,7],[5,7]],
+ yellow:[[7,13],[7,12],[7,11],[7,10],[7,9]],
+ blue:[[13,7],[12,7],[11,7],[10,7],[9,7]]
+};
+const BASES={
+ red:[[1.5,1.5],[4.5,1.5],[1.5,4.5],[4.5,4.5]],
+ green:[[10.5,1.5],[13.5,1.5],[10.5,4.5],[13.5,4.5]],
+ yellow:[[10.5,10.5],[13.5,10.5],[10.5,13.5],[13.5,13.5]],
+ blue:[[1.5,10.5],[4.5,10.5],[1.5,13.5],[4.5,13.5]]
+};
+const SAFE=[0,8,13,21,26,34,39,47];
+const DICE=["⚀","⚁","⚂","⚃","⚄","⚅"];
+
+let mode="2",opponent="computer";
+let players=[],turn=0,dice=0,rolled=false,rolling=false,finished=false;
+let choices=[],logs=[],busy=false,animating=false;
+let tokenHitAreas=[],particles=[],lastTime=0;
+
+function cellCenter(r,c){return [(c+.5)*C,(r+.5)*C]}
+function rect(r,c,w=1,h=1,color){
+ ctx.fillStyle=color;ctx.fillRect(c*C,r*C,w*C,h*C);
+ ctx.strokeStyle="#c9c6bc";ctx.lineWidth=1;ctx.strokeRect(c*C,r*C,w*C,h*C);
+}
+function roundRect(x,y,w,h,r,color){
+ ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();
+}
+function drawBase(color,x,y){
+ const col=COLORS[color];
+ roundRect(x*C+2,y*C+2,6*C-4,6*C-4,17,col.main);
+ roundRect(x*C+22,y*C+22,6*C-44,6*C-44,15,"#fff8e9");
+ const spots=[[1.5,1.5],[4.5,1.5],[1.5,4.5],[4.5,4.5]];
+ spots.forEach(([a,b])=>{
+  const cx=(x+a)*C,cy=(y+b)*C;
+  ctx.beginPath();ctx.arc(cx,cy,12,0,Math.PI*2);
+  ctx.fillStyle=col.pale;ctx.fill();
+  ctx.lineWidth=5;ctx.strokeStyle=col.dark;ctx.stroke();
+ });
+}
+function drawCell(r,c,color){
+ const x=c*C,y=r*C;
+ ctx.fillStyle=color;ctx.fillRect(x,y,C,C);
+ ctx.strokeStyle="#d1cbbd";ctx.lineWidth=1;ctx.strokeRect(x,y,C,C);
+}
+function drawBoard(){
+ ctx.clearRect(0,0,W,W);
+ ctx.fillStyle="#f5f0e4";ctx.fillRect(0,0,W,W);
+
+ // Four home bases
+ drawBase("red",0,0);
+ drawBase("green",9,0);
+ drawBase("blue",0,9);
+ drawBase("yellow",9,9);
+
+ // Outer track
+ TRACK.forEach(([r,c],i)=>{
+  const color=SAFE.includes(i)?"#fff7df":"#fffdf6";
+  drawCell(r,c,color);
+  if(SAFE.includes(i)){
+   const [x,y]=cellCenter(r,c);
+   ctx.fillStyle="#c5ad73";ctx.font="bold 21px Arial";
+   ctx.textAlign="center";ctx.textBaseline="middle";
+   ctx.fillText("★",x,y+1);
+  }
+ });
+
+ // Start square colours
+ ORDER.forEach(color=>{
+  const i=START[color],p=TRACK[i];
+  drawCell(p[0],p[1],COLORS[color].main);
+  const [x,y]=cellCenter(p[0],p[1]);
+  ctx.fillStyle="#fff";ctx.font="bold 17px Arial";
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText("★",x,y);
+ });
+
+ // Home lanes
+ ORDER.forEach(color=>{
+  LANES[color].forEach(([r,c])=>{
+   drawCell(r,c,COLORS[color].pale);
+  });
+ });
+
+ // Center finish triangles
+ const x=6*C,y=6*C,s=3*C;
+ ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+s,y);ctx.lineTo(x+s/2,y+s/2);ctx.closePath();
+ ctx.fillStyle=COLORS.green.main;ctx.fill();
+ ctx.beginPath();ctx.moveTo(x+s,y);ctx.lineTo(x+s,y+s);ctx.lineTo(x+s/2,y+s/2);ctx.closePath();
+ ctx.fillStyle=COLORS.yellow.main;ctx.fill();
+ ctx.beginPath();ctx.moveTo(x+s,y+s);ctx.lineTo(x,y+s);ctx.lineTo(x+s/2,y+s/2);ctx.closePath();
+ ctx.fillStyle=COLORS.blue.main;ctx.fill();
+ ctx.beginPath();ctx.moveTo(x,y+s);ctx.lineTo(x,y);ctx.lineTo(x+s/2,y+s/2);ctx.closePath();
+ ctx.fillStyle=COLORS.red.main;ctx.fill();
+ ctx.beginPath();ctx.arc(300,300,12,0,Math.PI*2);
+ ctx.fillStyle="#fff";ctx.fill();
+
+ // Small decorative centre ring
+ ctx.beginPath();ctx.arc(300,300,21,0,Math.PI*2);
+ ctx.strokeStyle="#ffffff";ctx.lineWidth=2;ctx.stroke();
+
+ drawTokens();
+}
+function positionOf(token){
+ if(token.step===-1)return BASES[token.color][token.id];
+ if(token.step<=50){
+  const p=TRACK[(START[token.color]+token.step)%52];
+  return [p[1]+.5,p[0]+.5];
+ }
+ if(token.step<=55){
+  const p=LANES[token.color][token.step-51];
+  return [p[1]+.5,p[0]+.5];
+ }
+ return [7.5,7.5];
+}
+function drawToken(token,x,y,selectable=false){
+ const col=COLORS[token.color];
+ const px=x*C,py=y*C;
+ const radius=13;
+ ctx.save();
+ ctx.shadowColor=selectable?"#ffdf55":"#0008";
+ ctx.shadowBlur=selectable?19:7;
+ ctx.shadowOffsetY=4;
+ const grad=ctx.createRadialGradient(px-5,py-6,2,px,py,radius+2);
+ grad.addColorStop(0,col.light);
+ grad.addColorStop(.45,col.main);
+ grad.addColorStop(1,col.dark);
+ ctx.beginPath();ctx.arc(px,py,radius,0,Math.PI*2);
+ ctx.fillStyle=grad;ctx.fill();
+ ctx.restore();
+ ctx.beginPath();ctx.arc(px,py,radius-2,0,Math.PI*2);
+ ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke();
+ ctx.beginPath();ctx.arc(px-4,py-5,3,0,Math.PI*2);
+ ctx.fillStyle="#ffffffa8";ctx.fill();
+ if(selectable){
+  ctx.beginPath();ctx.arc(px,py,radius+5,0,Math.PI*2);
+  ctx.strokeStyle="#ffdc53";ctx.lineWidth=3;ctx.stroke();
+  ctx.beginPath();ctx.arc(px,py,radius+9,0,Math.PI*2);
+  ctx.strokeStyle="#ffdc5380";ctx.lineWidth=2;ctx.stroke();
+ }
+ ctx.fillStyle=token.color==="yellow"?"#402b00":"#fff";
+ ctx.font="bold 10px Arial";ctx.textAlign="center";ctx.textBaseline="middle";
+ ctx.fillText(String(token.id+1),px,py+.5);
+}
+function drawTokens(){
+ tokenHitAreas=[];
+ let all=[];
+ players.forEach(p=>p.tokens.forEach(t=>all.push(t)));
+ const grouped={};
+ all.forEach(t=>{
+  const pos=positionOf(t),key=pos.join(",");
+  (grouped[key]??=[]).push(t);
+ });
+ Object.values(grouped).forEach(group=>{
+  group.forEach((t,i)=>{
+   let [x,y]=positionOf(t);
+   if(group.length>1){
+    const a=(i/group.length)*Math.PI*2;
+    x+=Math.cos(a)*.13;y+=Math.sin(a)*.13;
+   }
+   const can=choices.includes(t);
+   drawToken(t,x,y,can);
+   if(can)tokenHitAreas.push({token:t,x:x*C,y:y*C});
+  });
+ });
+}
+function render(){
+ drawBoard();
+ updateSidebar();
+}
+function updateSidebar(){
+ if(!players.length)return;
+ const current=players[turn];
+ $("turnLabel").textContent=LABEL[current.color]+
+  (mode==="partner"?" TEAM "+(current.team+1):"");
+ $("playerList").innerHTML=players.map((p,i)=>{
+  const home=p.tokens.filter(t=>t.step===56).length;
+  return `<div class="player-row ${i===turn?"active":""}">
+  <span class="dot ${p.color}"></span>
+  <span>${LABEL[p.color]} ${p.ai?"🤖":""}</span>
+  <span class="count">${home}/4 HOME</span></div>`;
+ }).join("");
+ $("history").innerHTML=logs.slice(-7).reverse().map(x=>"• "+x).join("<br>");
+}
+function log(text){
+ logs.push(text);
+ if(logs.length>30)logs.shift();
+ updateSidebar();
+}
+function activeColors(){
+ if(mode==="2")return ["red","yellow"];
+ if(mode==="3")return ["red","green","yellow"];
+ return ORDER.slice();
+}
+function makePlayers(){
+ const colors=activeColors();
+ players=colors.map((color,i)=>({
+  color,team:mode==="partner"?(color==="red"||color==="yellow"?0:1):i,
+  ai:opponent==="computer"&&i!==0,
+  tokens:Array.from({length:4},(_,id)=>({id,color,step:-1}))
+ }));
+}
+function start(){
+ makePlayers();
+ turn=0;dice=0;rolled=false;rolling=false;finished=false;
+ choices=[];logs=["The match has started!"];
+ $("setup").classList.remove("active");
+ $("game").classList.add("active");
+ $("modal").classList.remove("show");
+ $("dice").textContent="⚀";
+ $("status").textContent="Roll a six to bring a token out!";
+ $("roll").disabled=false;
+ render();
+ if(players[turn].ai)setTimeout(aiTurn,700);
+}
+function canMove(token,value){
+ if(token.step===-1)return value===6;
+ if(token.step===56)return false;
+ return token.step+value<=56;
+}
+function roll(){
+ if(rolling||rolled||finished||players[turn].ai)return;
+ doRoll();
+}
+function doRoll(){
+ if(rolling||rolled||finished)return;
+ rolling=true;$("roll").disabled=true;
+ $("dice").classList.add("rolling");
+ let count=0;
+ const timer=setInterval(()=>{
+  $("dice").textContent=DICE[Math.floor(Math.random()*6)];
+  count++;
+  if(count>=13){
+   clearInterval(timer);
+   dice=1+Math.floor(Math.random()*6);
+   $("dice").textContent=DICE[dice-1];
+   $("dice").classList.remove("rolling");
+   rolling=false;rolled=true;
+   log(LABEL[players[turn].color]+" rolled "+dice);
+   choices=players[turn].tokens.filter(t=>canMove(t,dice));
+   if(!choices.length){
+    $("status").textContent="No valid move available.";
+    render();
+    setTimeout(()=>{
+     if(dice===6){rolled=false;choices=[];$("roll").disabled=players[turn].ai;
+      $("status").textContent="Six! You get another roll.";
+      if(players[turn].ai)setTimeout(aiTurn,650);
+     }else nextTurn();
+    },900);
+   }else{
+    $("status").textContent="Select one of the glowing tokens.";
+    render();
+    if(players[turn].ai)setTimeout(aiMove,700);
+   }
+  }
+ },75);
+}
+function sameTeam(a,b){
+ return mode==="partner"&&a.team===b.team;
+}
+function captureAt(token){
+ if(token.step<0||token.step>50)return 0;
+ const index=(START[token.color]+token.step)%52;
+ if(SAFE.includes(index))return 0;
+ let count=0;
+ players.forEach(p=>{
+  if(p===players[turn]||sameTeam(p,players[turn]))return;
+  p.tokens.forEach(enemy=>{
+   if(enemy.step>=0&&enemy.step<=50&&
+    (START[enemy.color]+enemy.step)%52===index){
+    enemy.step=-1;count++;
+   }
+  });
+ });
+ return count;
+}
+function doMove(token){
+ if(!choices.includes(token)||!rolled||busy||finished)return;
+ busy=true;
+ const old=token.step;
+ const destination=old===-1?0:old+dice;
+ const count=old===-1?1:dice;
+ let step=0;
+ function animateStep(){
+  step++;
+  if(old===-1)token.step=0;
+  else token.step=Math.min(56,old+step);
+  render();
+  if(step<count){
+   setTimeout(animateStep,95);
+  }else{
+   const captured=captureAt(token);
+   const reached=token.step===56;
+   log(LABEL[token.color]+" moved token "+(token.id+1));
+   if(captured)log("Captured "+captured+" opponent token(s)!");
+   if(reached)log(LABEL[token.color]+" reached HOME!");
+   const current=players[turn];
+   if(current.tokens.every(t=>t.step===56)){
+    busy=false;win(current);return;
+   }
+   choices=[];rolled=false;busy=false;
+   render();
+   if(dice===6||captured>0){
+    $("status").textContent=dice===6?"Six! Roll again.":"Great capture! Bonus turn.";
+    $("roll").disabled=current.ai;
+    if(current.ai)setTimeout(aiTurn,650);
+   }else nextTurn();
+  }
+ }
+ animateStep();
+}
+function nextTurn(){
+ choices=[];rolled=false;busy=false;
+ turn=(turn+1)%players.length;
+ $("roll").disabled=players[turn].ai;
+ $("status").textContent=LABEL[players[turn].color]+"'s turn. Roll the dice.";
+ render();
+ if(players[turn].ai)setTimeout(aiTurn,700);
+}
+function aiTurn(){
+ if(finished||rolling||rolled||!players[turn].ai)return;
+ doRoll();
+}
+function aiMove(){
+ if(finished||!players[turn].ai||!choices.length)return;
+ const p=players[turn];
+ function score(t){
+  if(t.step===-1)return 30;
+  if(t.step+dice===56)return 1000;
+  let value=t.step;
+  const next=t.step+dice;
+  if(next<=50){
+   const idx=(START[t.color]+next)%52;
+   if(!SAFE.includes(idx)){
+    players.forEach(enemy=>{
+     if(enemy===p||sameTeam(enemy,p))return;
+     if(enemy.tokens.some(e=>e.step>=0&&e.step<=50&&
+      (START[e.color]+e.step)%52===idx))value+=120;
+    });
+   }
+  }
+  return value+dice*2;
+ }
+ const chosen=choices.slice().sort((a,b)=>score(b)-score(a))[0];
+ doMove(chosen);
+}
+function win(player){
+ finished=true;
+ $("winnerTitle").textContent=mode==="partner"?
+  "🏆 TEAM "+(player.team+1)+" WINS!":"🏆 "+LABEL[player.color]+" WINS!";
+ $("winnerText").textContent=mode==="partner"?
+  "Congratulations! Your team has brought all four tokens home.":
+  "Amazing! All four tokens have reached their home. You are the Ludo champion!";
+ $("modal").classList.add("show");
+}
+function onCanvasClick(e){
+ if(!rolled||rolling||busy||finished||players[turn].ai)return;
+ const rect=canvas.getBoundingClientRect();
+ const x=(e.clientX-rect.left)*W/rect.width;
+ const y=(e.clientY-rect.top)*W/rect.height;
+ let found=tokenHitAreas.slice().reverse().find(t=>
+  Math.hypot(x-t.x,y-t.y)<25
+ );
+ if(found)doMove(found.token);
+}
+canvas.addEventListener("click",onCanvasClick);
+$("roll").addEventListener("click",roll);
+$("startGame").addEventListener("click",start);
+$("restart").addEventListener("click",start);
+$("playAgain").addEventListener("click",start);
+$("menu").addEventListener("click",()=>{
+ $("game").classList.remove("active");
+ $("setup").classList.add("active");
+});
+$("modalMenu").addEventListener("click",()=>{
+ $("modal").classList.remove("show");
+ $("game").classList.remove("active");
+ $("setup").classList.add("active");
+});
+document.querySelectorAll("#modeOptions button").forEach(btn=>{
+ btn.addEventListener("click",()=>{
+  mode=btn.dataset.mode;
+  document.querySelectorAll("#modeOptions button").forEach(b=>b.classList.toggle("selected",b===btn));
+ });
+});
+document.querySelectorAll("#opponentOptions button").forEach(btn=>{
+ btn.addEventListener("click",()=>{
+  opponent=btn.dataset.opponent;
+  document.querySelectorAll("#opponentOptions button").forEach(b=>b.classList.toggle("selected",b===btn));
+ });
+});
+
+// Ambient gold sparkles around the board
+function animate(time){
+ const dt=Math.min((time-lastTime)/1000||0,.04);
+ lastTime=time;
+ if($("game").classList.contains("active")&&!finished){
+  // A subtle board glow pulse
+  if(!busy&&!rolling&&choices.length){
+   // Highlight rings are drawn in drawTokens().
+  }
+ }
+ requestAnimationFrame(animate);
+}
+renderIdle();
+function renderIdle(){
+ ctx.fillStyle="#f5f0e4";ctx.fillRect(0,0,W,W);
+ drawBoard();
+}
+requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
